@@ -10,11 +10,6 @@ void drawWireframe(const std::string &filename, TGAImage &frameBuffer, TGAColor 
     return;
   }
 
-  // read line by line. Each line that starts with 'v' is a vertex
-  // store it. Each line starts with 'f' is a face, draw lines between vertices
-  // like this: f 1/2/3 4/5/6 7/8/9
-  // means drawing line between 1 and 2 and 3 (vertex indices)
-  // and 4 and 5 and 6, and so on.
   std::string str_line;
   std::vector<std::vector<float>> vertices;
   int faces_processed = 0;
