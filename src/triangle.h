@@ -1,6 +1,5 @@
 #pragma once
 #include "tgaimage.h"
-
 class Triangle
 {
 public:
@@ -31,11 +30,11 @@ public:
     double gamma = triangleSignedArea(x0, y0, x1, y1, px, py) / A;
     return std::make_tuple(alpha, beta, gamma);
   }
-
-private:
-  void computeBoundingBox();
   double area() const
   {
     return triangleSignedArea(x0, y0, x1, y1, x2, y2);
   }
+
+private:
+  void computeBoundingBox();
 };

@@ -36,7 +36,7 @@ void Renderer::drawTriangle(int x0, int y0, int x1, int y1, int x2, int y2, TGAC
     this->drawLine(x1, y1, x2, y2, color);
     this->drawLine(x2, y2, x0, y0, color);
 }
-void Renderer::drawFilledTriangle(int x0, int y0, int x1, int y1, int x2, int y2, TGAColor color)
+void Renderer::drawFilledTriangleLegacy(int x0, int y0, int x1, int y1, int x2, int y2, TGAColor color)
 {
     // Sort vertices by y-coordinate
     if (y0 > y1)
@@ -85,12 +85,15 @@ void Renderer::drawBoundingBox(const Triangle &tri, TGAColor color)
     this->drawLine(min_x, max_y, min_x, min_y, color); // Left edge
 }
 
-void Renderer::drawFilledBoundingBox(const Triangle &tri, TGAColor color)
+void Renderer::drawFilledTriangle(const Triangle &tri, TGAColor color)
 {
     int min_x = tri.bbox_min_point.first;
     int min_y = tri.bbox_min_point.second;
     int max_x = tri.bbox_max_point.first;
     int max_y = tri.bbox_max_point.second;
+
+    if (tri.area() < 1)
+        return; // Backface culling and degenerate triangle check
 
     #pragma omp parallel for
     for (int x = min_x; x <= max_x; ++x)
