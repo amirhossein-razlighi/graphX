@@ -1,9 +1,11 @@
 #include "triangle.h"
-#include "line.h"
 
-void triangle(int x0, int y0, int x1, int y1, int x2, int y2, TGAImage &image, TGAColor color)
+void Triangle::computeBoundingBox()
 {
-  line(x0, y0, x1, y1, image, color);
-  line(x1, y1, x2, y2, image, color);
-  line(x2, y2, x0, y0, image, color);
+  int min_x = std::min(std::min(x0, x1), x2);
+  int min_y = std::min(std::min(y0, y1), y2);
+  int max_x = std::max(std::max(x0, x1), x2);
+  int max_y = std::max(std::max(y0, y1), y2);
+  bbox_min_point = {min_x, min_y};
+  bbox_max_point = {max_x, max_y};
 }

@@ -1,5 +1,5 @@
 #include "tgaimage.h"
-#include "line.h"
+#include "renderer.h"
 #include "triangle.h"
 
 constexpr TGAColor white = {255, 255, 255, 255}; // attention, BGRA order
@@ -14,9 +14,9 @@ int main(int argc, char **argv)
     constexpr int height = 128;
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
-    triangle(7, 45, 35, 100, 45, 60, framebuffer, red);
-    triangle(120, 35, 90, 5, 45, 110, framebuffer, white);
-    triangle(115, 83, 80, 90, 85, 120, framebuffer, green);
+    const Triangle tri(10, 20, 80, 30, 50, 90, red);
+    Renderer renderer(framebuffer);
+    renderer.drawFilledBoundingBox(tri, blue);
 
     framebuffer.write_tga_file("framebuffer.tga");
     return 0;
