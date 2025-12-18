@@ -10,6 +10,18 @@ constexpr TGAColor red = {0, 0, 255, 255};
 constexpr TGAColor blue = {255, 128, 64, 255};
 constexpr TGAColor yellow = {0, 200, 255, 255};
 
+vec3 rot(vec3 v) {
+    constexpr double angle = M_PI / 6.0; // 30 degrees
+    double cos_angle = std::cos(angle);
+    double sin_angle = std::sin(angle);
+    const mat<3,3> rotation_matrix_around_y = {{
+        {cos_angle, 0, sin_angle},
+        {0, 1, 0},
+        {-sin_angle, 0, cos_angle}
+    }};
+    return rotation_matrix_around_y * v;
+}
+
 std::tuple <int, int, int> orthographicProjection(const vec3 &v, int image_width, int image_height)
 {
     return {
@@ -41,9 +53,9 @@ int main(int argc, char **argv)
         vec3 v2 = model.vert(i, 2);
 
         // Transform from normalized device coordinates to screen coordinates
-        auto [x0, y0, z0] = orthographicProjection(v0, IMAGE_WIDTH, IMAGE_HEIGHT);
-        auto [x1, y1, z1] = orthographicProjection(v1, IMAGE_WIDTH, IMAGE_HEIGHT);
-        auto [x2, y2, z2] = orthographicProjection(v2, IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x0, y0, z0] = orthographicProjection(rot(v0), IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x1, y1, z1] = orthographicProjection(rot(v1), IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x2, y2, z2] = orthographicProjection(rot(v2), IMAGE_WIDTH, IMAGE_HEIGHT);
 
         TGAColor random_color_v0;
         TGAColor random_color_v1;
