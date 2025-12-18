@@ -10,6 +10,15 @@ constexpr TGAColor red = {0, 0, 255, 255};
 constexpr TGAColor blue = {255, 128, 64, 255};
 constexpr TGAColor yellow = {0, 200, 255, 255};
 
+std::tuple <int, int, int> orthographicProjection(const vec3 &v, int image_width, int image_height)
+{
+    return {
+        (v.x + 1.0f) * image_width / 2.0f,
+        (v.y + 1.0f) * image_height / 2.0f,
+        (v.z + 1.0f) * 255.0f / 2.0f
+    };
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -22,7 +31,8 @@ int main(int argc, char **argv)
     const int IMAGE_WIDTH = 800;
     const int IMAGE_HEIGHT = 800;
     TGAImage frameBuffer(IMAGE_WIDTH, IMAGE_HEIGHT, TGAImage::RGB);
-    Renderer renderer(frameBuffer);
+    TGAImage zBuffer(IMAGE_WIDTH, IMAGE_HEIGHT, TGAImage::GRAYSCALE);
+    Renderer renderer(frameBuffer, zBuffer);
 
     for (int i = 0; i < model.nfaces(); i++)
     {
@@ -31,12 +41,9 @@ int main(int argc, char **argv)
         vec3 v2 = model.vert(i, 2);
 
         // Transform from normalized device coordinates to screen coordinates
-        int x0 = static_cast<int>((v0.x + 1.0f) * IMAGE_WIDTH / 2.0f);
-        int y0 = static_cast<int>((v0.y + 1.0f) * IMAGE_HEIGHT / 2.0f);
-        int x1 = static_cast<int>((v1.x + 1.0f) * IMAGE_WIDTH / 2.0f);
-        int y1 = static_cast<int>((v1.y + 1.0f) * IMAGE_HEIGHT / 2.0f);
-        int x2 = static_cast<int>((v2.x + 1.0f) * IMAGE_WIDTH / 2.0f);
-        int y2 = static_cast<int>((v2.y + 1.0f) * IMAGE_HEIGHT / 2.0f);
+        auto [x0, y0, z0] = orthographicProjection(v0, IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x1, y1, z1] = orthographicProjection(v1, IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x2, y2, z2] = orthographicProjection(v2, IMAGE_WIDTH, IMAGE_HEIGHT);
 
         TGAColor random_color_v0;
         TGAColor random_color_v1;
@@ -48,11 +55,12 @@ int main(int argc, char **argv)
             random_color_v2[c] = static_cast<std::uint8_t>(std::rand() % 256);
         }
 
-        Triangle tri(x0, y0, x1, y1, x2, y2, random_color_v0, random_color_v1, random_color_v2);
+        Triangle tri(x0, y0, z0, x1, y1, z1, x2, y2, z2, random_color_v0, random_color_v1, random_color_v2);
         renderer.drawFilledTriangle(tri);
     }
 
     frameBuffer.write_tga_file("framebuffer.tga");
+    zBuffer.write_tga_file("zbuffer.tga");
 
     return 0;
 }

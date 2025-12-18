@@ -92,9 +92,6 @@ void Renderer::drawFilledTriangle(const Triangle &tri)
     int max_x = tri.bbox_max_point.first;
     int max_y = tri.bbox_max_point.second;
 
-    if (tri.area() < 1)
-        return; // Backface culling and degenerate triangle check
-
     #pragma omp parallel for
     for (int x = min_x; x <= max_x; ++x)
     {
@@ -108,7 +105,13 @@ void Renderer::drawFilledTriangle(const Triangle &tri)
             if (alpha < 0 || beta < 0 || gamma < 0)
                 continue; // Point is outside the triangle
             TGAColor interpolated_color = tri.interpolateColor(alpha, beta, gamma);
-            framebuffer.set(x, y, interpolated_color);
+            unsigned char depth = tri.getDepthAtBarycentric(alpha, beta, gamma);
+            
+            if (depth > zbuffer.get(x, y)[0])
+            {
+                framebuffer.set(x, y, interpolated_color);
+                zbuffer.set(x, y, {depth});
+            }
         }
     }
 }

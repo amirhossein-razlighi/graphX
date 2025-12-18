@@ -3,18 +3,18 @@
 class Triangle
 {
 public:
-  std::vector<std::pair<int, int>> vertices;
-  int x0, y0, x1, y1, x2, y2;
+  std::vector<std::tuple<int, int, int>> vertices;
+  int x0, y0, z0, x1, y1, z1, x2, y2, z2;
   TGAColor color0, color1, color2;
   std::pair<int, int> bbox_min_point;
   std::pair<int, int> bbox_max_point;
 
-  Triangle(int x0, int y0, int x1, int y1, int x2, int y2, TGAColor color0, TGAColor color1, TGAColor color2)
-      : color0(color0), color1(color1), color2(color2), x0(x0), y0(y0), x1(x1), y1(y1), x2(x2), y2(y2)
+  Triangle(int x0, int y0, int z0, int x1, int y1, int z1, int x2, int y2, int z2, TGAColor color0, TGAColor color1, TGAColor color2)
+      : color0(color0), color1(color1), color2(color2), x0(x0), y0(y0), z0(z0), x1(x1), y1(y1), z1(z1), x2(x2), y2(y2), z2(z2)
   {
-    vertices.push_back({x0, y0});
-    vertices.push_back({x1, y1});
-    vertices.push_back({x2, y2});
+    vertices.push_back({x0, y0, z0});
+    vertices.push_back({x1, y1, z1});
+    vertices.push_back({x2, y2, z2});
     computeBoundingBox();
   }
   static double triangleSignedArea(int x0, int y0, int x1, int y1, int x2, int y2)
@@ -47,6 +47,11 @@ public:
       interpolated[i] = static_cast<unsigned char>(alpha * c0[i] + beta * c1[i] + gamma * c2[i]);
     }
     return interpolated;
+  }
+
+  unsigned char getDepthAtBarycentric(double alpha, double beta, double gamma) const
+  {
+    return static_cast<unsigned char>(alpha * z0 + beta * z1 + gamma * z2);
   }
 
 private:
