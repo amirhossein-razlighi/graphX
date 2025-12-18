@@ -37,17 +37,22 @@ int main(int argc, char **argv)
         int y1 = static_cast<int>((v1.y + 1.0f) * IMAGE_HEIGHT / 2.0f);
         int x2 = static_cast<int>((v2.x + 1.0f) * IMAGE_WIDTH / 2.0f);
         int y2 = static_cast<int>((v2.y + 1.0f) * IMAGE_HEIGHT / 2.0f);
-        
-        TGAColor random_color;
+
+        TGAColor random_color_v0;
+        TGAColor random_color_v1;
+        TGAColor random_color_v2;
         for (int c = 0; c < 3; c++)
         {
-            random_color[c] = static_cast<std::uint8_t>(std::rand() % 256);
+            random_color_v0[c] = static_cast<std::uint8_t>(std::rand() % 256);
+            random_color_v1[c] = static_cast<std::uint8_t>(std::rand() % 256);
+            random_color_v2[c] = static_cast<std::uint8_t>(std::rand() % 256);
         }
 
-        Triangle tri(x0, y0, x1, y1, x2, y2, random_color);
-        renderer.drawFilledTriangle(tri, random_color);
+        Triangle tri(x0, y0, x1, y1, x2, y2, random_color_v0, random_color_v1, random_color_v2);
+        renderer.drawFilledTriangle(tri);
     }
 
     frameBuffer.write_tga_file("framebuffer.tga");
+
     return 0;
 }

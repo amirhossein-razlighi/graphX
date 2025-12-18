@@ -85,7 +85,7 @@ void Renderer::drawBoundingBox(const Triangle &tri, TGAColor color)
     this->drawLine(min_x, max_y, min_x, min_y, color); // Left edge
 }
 
-void Renderer::drawFilledTriangle(const Triangle &tri, TGAColor color)
+void Renderer::drawFilledTriangle(const Triangle &tri)
 {
     int min_x = tri.bbox_min_point.first;
     int min_y = tri.bbox_min_point.second;
@@ -107,7 +107,8 @@ void Renderer::drawFilledTriangle(const Triangle &tri, TGAColor color)
             double gamma = std::get<2>(baryCoords);
             if (alpha < 0 || beta < 0 || gamma < 0)
                 continue; // Point is outside the triangle
-            framebuffer.set(x, y, color);
+            TGAColor interpolated_color = tri.interpolateColor(alpha, beta, gamma);
+            framebuffer.set(x, y, interpolated_color);
         }
     }
 }
