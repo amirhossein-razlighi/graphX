@@ -58,6 +58,21 @@ struct vec
 
 };
 
+template <int n, int m>
+struct mat
+{
+  double data[n][m] = {{0}};
+  vec<n> operator*(const vec<m> &v) const {
+    vec<n> result;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < m; j++) {
+        result[i] += data[i][j] * v[j];
+      }
+    }
+    return result;
+}
+};
+
 template <int n>
 std::ostream &operator<<(std::ostream &out, const vec<n> &v)
 {
