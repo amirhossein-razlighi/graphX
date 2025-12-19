@@ -22,6 +22,11 @@ vec3 rot(vec3 v) {
     return rotation_matrix_around_y * v;
 }
 
+vec3 perspectiveProjection(vec3 v) {
+    constexpr double c = 5;
+    return v / (1 - v.z / c);
+}
+
 std::tuple <int, int, int> orthographicProjection(const vec3 &v, int image_width, int image_height)
 {
     return {
@@ -53,9 +58,9 @@ int main(int argc, char **argv)
         vec3 v2 = model.vert(i, 2);
 
         // Transform from normalized device coordinates to screen coordinates
-        auto [x0, y0, z0] = orthographicProjection(rot(v0), IMAGE_WIDTH, IMAGE_HEIGHT);
-        auto [x1, y1, z1] = orthographicProjection(rot(v1), IMAGE_WIDTH, IMAGE_HEIGHT);
-        auto [x2, y2, z2] = orthographicProjection(rot(v2), IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x0, y0, z0] = orthographicProjection(perspectiveProjection(rot(v0)), IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x1, y1, z1] = orthographicProjection(perspectiveProjection(rot(v1)), IMAGE_WIDTH, IMAGE_HEIGHT);
+        auto [x2, y2, z2] = orthographicProjection(perspectiveProjection(rot(v2)), IMAGE_WIDTH, IMAGE_HEIGHT);
 
         TGAColor random_color_v0;
         TGAColor random_color_v1;
