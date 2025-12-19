@@ -92,26 +92,58 @@ void Renderer::drawFilledTriangle(const Triangle &tri)
     int max_x = tri.bbox_max_point.first;
     int max_y = tri.bbox_max_point.second;
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int x = min_x; x <= max_x; ++x)
     {
         for (int y = min_y; y <= max_y; ++y)
         {
             // Computing the baryCentric coordinates
             std::tuple<double, double, double> baryCoords = tri.barycentricCoordinates(x, y);
-            double alpha = std::get<0>(baryCoords);
-            double beta = std::get<1>(baryCoords);
-            double gamma = std::get<2>(baryCoords);
+            double alpha, beta, gamma;
+            std::tie(alpha, beta, gamma) = baryCoords;
             if (alpha < 0 || beta < 0 || gamma < 0)
                 continue; // Point is outside the triangle
             TGAColor interpolated_color = tri.interpolateColor(alpha, beta, gamma);
-            unsigned char depth = tri.getDepthAtBarycentric(alpha, beta, gamma);
-            
-            if (depth > zbuffer.get(x, y)[0])
+            double depth = tri.getDepthAtBarycentric(alpha, beta, gamma);
+
+            if (depth > zbuffer[x + y * framebuffer.width()])
             {
                 framebuffer.set(x, y, interpolated_color);
-                zbuffer.set(x, y, {depth});
+                zbuffer[x + y * framebuffer.width()] = depth;
             }
         }
     }
+}
+
+void Renderer::renderZBuffer(const std::string &filename)
+{
+    TGAImage zbufferImage(framebuffer.width(), framebuffer.height(), TGAImage::GRAYSCALE);
+
+    // Find min and max depth values for normalization
+    double min_depth = std::numeric_limits<double>::max();
+    double max_depth = -std::numeric_limits<double>::max();
+
+    for (int i = 0; i < framebuffer.width() * framebuffer.height(); ++i)
+    {
+        if (zbuffer[i] > -std::numeric_limits<double>::max())
+        {
+            min_depth = std::min(min_depth, zbuffer[i]);
+            max_depth = std::max(max_depth, zbuffer[i]);
+        }
+    }
+
+    for (int x = 0; x < framebuffer.width(); ++x)
+    {
+        for (int y = 0; y < framebuffer.height(); ++y)
+        {
+            double depth = zbuffer[x + y * framebuffer.width()];
+            unsigned char depthValue = 0;
+            if (depth > -std::numeric_limits<double>::max())
+            {
+                depthValue = static_cast<unsigned char>(255.0 * (depth - min_depth) / (max_depth - min_depth));
+            }
+            zbufferImage.set(x, y, {depthValue, depthValue, depthValue});
+        }
+    }
+    zbufferImage.write_tga_file(filename);
 }
