@@ -1,83 +1,88 @@
-#include <iostream>
-#include "tgaimage.h"
-#include "renderer.h"
-#include "triangle.h"
+#include "geometry.h"
 #include "model.h"
+#include "tgaimage.h"
+#include "triangle.h"
+#include "renderer.h"
 
-constexpr TGAColor white = {255, 255, 255, 255}; // attention, BGRA order
-constexpr TGAColor green = {0, 255, 0, 255};
-constexpr TGAColor red = {0, 0, 255, 255};
-constexpr TGAColor blue = {255, 128, 64, 255};
-constexpr TGAColor yellow = {0, 200, 255, 255};
+mat<4, 4> ModelView, Viewport, Perspective;
 
-vec3 rot(vec3 v) {
-    constexpr double angle = M_PI / 6.0; // 30 degrees
-    double cos_angle = std::cos(angle);
-    double sin_angle = std::sin(angle);
-    const mat<3,3> rotation_matrix_around_y = {{
-        {cos_angle, 0, sin_angle},
-        {0, 1, 0},
-        {-sin_angle, 0, cos_angle}
-    }};
-    return rotation_matrix_around_y * v;
-}
-
-vec3 perspectiveProjection(vec3 v) {
-    constexpr double c = 5;
-    return v / (1 - v.z / c);
-}
-
-std::tuple <int, int, int> orthographicProjection(const vec3 &v, int image_width, int image_height)
+void lookat(const vec3 eye, const vec3 center, const vec3 up)
 {
-    return {
-        (v.x + 1.0f) * image_width / 2.0f,
-        (v.y + 1.0f) * image_height / 2.0f,
-        (v.z + 1.0f) * 255.0f / 2.0f
-    };
+    vec3 n = normalized(eye - center);
+    vec3 l = normalized(cross(up, n));
+    vec3 m = normalized(cross(n, l));
+    ModelView = mat<4, 4>{{{l.x, l.y, l.z, 0}, {m.x, m.y, m.z, 0}, {n.x, n.y, n.z, 0}, {0, 0, 0, 1}}} *
+                mat<4, 4>{{{1, 0, 0, -center.x}, {0, 1, 0, -center.y}, {0, 0, 1, -center.z}, {0, 0, 0, 1}}};
+}
+
+void perspective(const double f)
+{
+    Perspective = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, -1 / f, 1}}};
+}
+
+void viewport(const int x, const int y, const int w, const int h)
+{
+    Viewport = {{{w / 2., 0, 0, x + w / 2.}, {0, h / 2., 0, y + h / 2.}, {0, 0, 1, 0}, {0, 0, 0, 1}}};
+}
+
+void rasterize(const vec4 clip[3], Renderer &renderer, const TGAColor color)
+{
+    vec4 ndc[3] = {clip[0] / clip[0].w, clip[1] / clip[1].w, clip[2] / clip[2].w};                   // normalized device coordinates
+    vec2 screen[3] = {(Viewport * ndc[0]).xy(), (Viewport * ndc[1]).xy(), (Viewport * ndc[2]).xy()}; // screen coordinates
+
+    mat<3, 3> ABC = {{{screen[0].x, screen[0].y, 1.}, {screen[1].x, screen[1].y, 1.}, {screen[2].x, screen[2].y, 1.}}};
+    if (ABC.det() < 1)
+        return; // backface culling + discarding triangles that cover less than a pixel
+
+    Triangle tri(
+        static_cast<int>(screen[0].x), static_cast<int>(screen[0].y), (ndc[0].z),
+        static_cast<int>(screen[1].x), static_cast<int>(screen[1].y), (ndc[1].z),
+        static_cast<int>(screen[2].x), static_cast<int>(screen[2].y), (ndc[2].z),
+        color, color, color);
+
+    renderer.drawFilledTriangle(tri);
 }
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
+    if (argc < 2)
     {
         std::cerr << "Usage: " << argv[0] << " obj/model.obj" << std::endl;
         return 1;
     }
 
-    Model model(argv[1]);
-    const int IMAGE_WIDTH = 800;
-    const int IMAGE_HEIGHT = 800;
-    TGAImage frameBuffer(IMAGE_WIDTH, IMAGE_HEIGHT, TGAImage::RGB);
-    TGAImage zBuffer(IMAGE_WIDTH, IMAGE_HEIGHT, TGAImage::GRAYSCALE);
-    Renderer renderer(frameBuffer, zBuffer);
+    constexpr int width = 800; // output image size
+    constexpr int height = 800;
+    const vec3 eye{2, 0, 10};   // camera position
+    const vec3 center{0, 0, 0}; // camera direction
+    const vec3 up{0, 1, 0};     // camera up vector
 
-    for (int i = 0; i < model.nfaces(); i++)
-    {
-        vec3 v0 = model.vert(i, 0);
-        vec3 v1 = model.vert(i, 1);
-        vec3 v2 = model.vert(i, 2);
+    lookat(eye, center, up);
+    perspective(norm(eye - center));
+    viewport(width / 16, height / 16, width * 7 / 8, height * 7 / 8);
 
-        // Transform from normalized device coordinates to screen coordinates
-        auto [x0, y0, z0] = orthographicProjection(perspectiveProjection(rot(v0)), IMAGE_WIDTH, IMAGE_HEIGHT);
-        auto [x1, y1, z1] = orthographicProjection(perspectiveProjection(rot(v1)), IMAGE_WIDTH, IMAGE_HEIGHT);
-        auto [x2, y2, z2] = orthographicProjection(perspectiveProjection(rot(v2)), IMAGE_WIDTH, IMAGE_HEIGHT);
+    TGAImage framebuffer(width, height, TGAImage::RGB);
+    std::vector<double> zbuffer(width * height, -std::numeric_limits<double>::max());
+    Renderer renderer(framebuffer, zbuffer);
 
-        TGAColor random_color_v0;
-        TGAColor random_color_v1;
-        TGAColor random_color_v2;
-        for (int c = 0; c < 3; c++)
-        {
-            random_color_v0[c] = static_cast<std::uint8_t>(std::rand() % 256);
-            random_color_v1[c] = static_cast<std::uint8_t>(std::rand() % 256);
-            random_color_v2[c] = static_cast<std::uint8_t>(std::rand() % 256);
+    for (int m = 1; m < argc; m++)
+    { // iterate through all input objects
+        Model model(argv[m]);
+        for (int i = 0; i < model.nfaces(); i++)
+        { // iterate through all triangles
+            vec4 clip[3];
+            for (int d : {0, 1, 2})
+            { // assemble the primitive
+                vec3 v = model.vert(i, d);
+                clip[d] = Perspective * ModelView * vec4{v.x, v.y, v.z, 1.};
+            }
+            TGAColor rnd;
+            for (int c = 0; c < 3; c++)
+                rnd[c] = std::rand() % 255;
+            rasterize(clip, renderer, rnd); // rasterize the primitive
         }
-
-        Triangle tri(x0, y0, z0, x1, y1, z1, x2, y2, z2, random_color_v0, random_color_v1, random_color_v2);
-        renderer.drawFilledTriangle(tri);
     }
-
-    frameBuffer.write_tga_file("framebuffer.tga");
-    zBuffer.write_tga_file("zbuffer.tga");
-
+    renderer.renderZBuffer("zbuffer.tga");
+    framebuffer.write_tga_file("framebuffer.tga");
     return 0;
 }
