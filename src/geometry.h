@@ -3,8 +3,60 @@
 #include <cassert>
 #include <iostream>
 
+template <int n, typename Derived>
+struct baseVec
+{
+  Derived &derived() { return static_cast<Derived &>(*this); }
+  const Derived &derived() const { return static_cast<const Derived &>(*this); }
+
+  double norm() const
+  {
+    double sum = 0.0;
+    for (int i = 0; i < n; i++)
+      sum += derived()[i] * derived()[i];
+    return std::sqrt(sum);
+  }
+  double l2norm() const { return norm() * norm(); }
+
+  Derived operator/(const double scalar) const
+  {
+    Derived result;
+    for (int i = 0; i < n; i++)
+      result[i] = derived()[i] / scalar;
+    return result;
+  }
+  Derived operator*(const double scalar) const
+  {
+    Derived result;
+    for (int i = 0; i < n; i++)
+      result[i] = derived()[i] * scalar;
+    return result;
+  }
+  Derived operator+(const Derived &other) const
+  {
+    Derived result;
+    for (int i = 0; i < n; i++)
+      result[i] = derived()[i] + other[i];
+    return result;
+  }
+  Derived operator-(const Derived &other) const
+  {
+    Derived result;
+    for (int i = 0; i < n; i++)
+      result[i] = derived()[i] - other[i];
+    return result;
+  }
+  double operator*(const Derived &other) const
+  {
+    double dot = 0.0;
+    for (int i = 0; i < n; i++)
+      dot += derived()[i] * other[i];
+    return dot;
+  }
+};
+
 template <int n>
-struct vec
+struct vec : baseVec<n, vec<n>>
 {
   double data[n] = {0};
   double &operator[](const int i)
@@ -17,60 +69,24 @@ struct vec
     assert(i >= 0 && i < n);
     return data[i];
   }
-
-  double operator*(const vec<n> &otherVec) const {
-    double dotProduct = 0.0;
-    for (int i = 0; i < n; i++) {
-      dotProduct += this->data[i] * otherVec.data[i];
-    }
-    return dotProduct;
-  }
-
-  vec<n> operator*(const double scalar) const {
-    vec<n> result;
-    for (int i = 0; i < n; i++) {
-      result.data[i] = this->data[i] * scalar;
-    }
-    return result;
-  }
-
-  double l2norm() const {
-    return (this * this);
-  }
-
-  double norm() const {
-    return std::sqrt(l2norm());
-  }
-  vec<n> operator+(const vec<n> &otherVec) const {
-    vec<n> result;
-    for (int i = 0; i < n; i++) {
-      result.data[i] = this->data[i] + otherVec.data[i];
-    }
-    return result; 
-  }
-  vec<n> operator-(const vec<n> &otherVec) const {
-    vec<n> result;
-    for (int i = 0; i < n; i++) {
-      result.data[i] = this->data[i] - otherVec.data[i];
-    }
-    return result;
-  }
-
 };
 
 template <int n, int m>
 struct mat
 {
   double data[n][m] = {{0}};
-  vec<n> operator*(const vec<m> &v) const {
+  vec<n> operator*(const vec<m> &v) const
+  {
     vec<n> result;
-    for (int i = 0; i < n; i++) {
-      for (int j = 0; j < m; j++) {
+    for (int i = 0; i < n; i++)
+    {
+      for (int j = 0; j < m; j++)
+      {
         result[i] += data[i][j] * v[j];
       }
     }
     return result;
-}
+  }
 };
 
 template <int n>
@@ -82,7 +98,7 @@ std::ostream &operator<<(std::ostream &out, const vec<n> &v)
 }
 
 template <>
-struct vec<3>
+struct vec<3> : baseVec<3, vec<3>>
 {
   double x = 0, y = 0, z = 0;
   double &operator[](const int i)
